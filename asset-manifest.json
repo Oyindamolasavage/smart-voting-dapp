@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/smart-voting-dapp/static/css/main.ccbab516.css",
+    "main.js": "/smart-voting-dapp/static/js/main.1a2edfee.js",
+    "index.html": "/smart-voting-dapp/index.html",
+    "main.ccbab516.css.map": "/smart-voting-dapp/static/css/main.ccbab516.css.map",
+    "main.1a2edfee.js.map": "/smart-voting-dapp/static/js/main.1a2edfee.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ccbab516.css",
+    "static/js/main.1a2edfee.js"
+  ]
+}
