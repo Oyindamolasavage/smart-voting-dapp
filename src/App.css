@@ -1,0 +1,99 @@
+// src/App.js
+import { useEffect, useState } from "react";
+import { ethers } from "ethers";
+import SignIn from "./components/SignIn";
+import AdminPanel from "./components/AdminPanel";
+import VoterPanel from "./components/VoterPanel";
+import LiveResults from "./components/LiveResults";
+import SmartVotingABI from "./contracts/SmartVoting.json";
+
+const contractAddress = "0xYOUR_DEPLOYED_CONTRACT_ADDRESS";
+
+function App() {
+  const [matric, setMatric] = useState("");
+  const [account, setAccount] = useState("");
+  const [contract, setContract] = useState(null);
+  const [role, setRole] = useState(""); // "admin" or "voter"
+  const [candidates, setCandidates] = useState([]);
+  const [electionEnded, setElectionEnded] = useState(false);
+  const [voted, setVoted] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      if (window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = await provider.getSigner();
+        const address = await signer.getAddress();
+        const contractInstance = new ethers.Contract(
+          contractAddress,
+          SmartVotingABI.abi,
+          signer
+        );
+        setAccount(address);
+        setContract(contractInstance);
+
+        const cand = await contractInstance.getCandidates();
+        const ended = await contractInstance.electionEnded();
+        setCandidates(cand);
+        setElectionEnded(ended);
+
+        const admin = await contractInstance.admin();
+        if (address === admin) {
+          setRole("admin");
+        }
+      }
+    };
+    init();
+  }, []);
+
+  const handleLogin = async (enteredMatric) => {
+    if (!contract) return;
+    setMatric(enteredMatric);
+    try {
+      const whitelisted = await contract.whitelist(enteredMatric);
+      if (whitelisted.toLowerCase() === account.toLowerCase()) {
+        setRole("voter");
+      } else if (account === (await contract.admin())) {
+        setRole("admin");
+      } else {
+        alert("You are not whitelisted to vote.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to verify matric number.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 text-gray-800 p-4">
+      <h1 className="text-3xl font-bold text-center mb-4">Smart Voting DApp</h1>
+      <p className="text-center mb-4">Connected wallet: {account}</p>
+
+      {!role && <SignIn onLogin={handleLogin} />}
+
+      {role === "admin" && (
+        <AdminPanel
+          contract={contract}
+          candidates={candidates}
+          refreshCandidates={() =>
+            contract.getCandidates().then(setCandidates)
+          }
+        />
+      )}
+
+      {role === "voter" && !electionEnded && !voted && (
+        <VoterPanel
+          contract={contract}
+          matric={matric}
+          candidates={candidates}
+          onVote={() => setVoted(true)}
+        />
+      )}
+
+      {role && <LiveResults candidates={candidates} />}
+    </div>
+  );
+}
+
+export default App;
